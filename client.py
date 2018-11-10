@@ -24,35 +24,78 @@
 
 import socket
 import sys
+import os
 
-def main():
+def intialize_socket(host,port):
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host = "127.0.0.1"
-    port = 8888
-
     try:
         soc.connect((host, port))
     except:
         print("Connection error")
         sys.exit()
+    return soc
 
-    print("Enter 'quit' to exit")
-    message = input(" -> ")
 
-    if message == 'exit':
-        soc.close()
-        exit()
+def main():
+    host = input(" -> IP: ")
+    port = int(input(" -> Port: "))
+    # downloadDir = "E:/IBA-CS FALL 2018 (CS-8)/Distributed Operating System/final_project"
 
-    while message != 'quit':
-        soc.sendall(message.encode("utf8"))
-        if soc.recv(5120).decode("utf8") == "hogaya":
-            print("done")
+    soc = intialize_socket(host,port)
 
-            # pass        # null operation
-
+    while True:
         message = input(" -> ")
+        if message == 'exit':
+            soc.sendall(message.encode("utf8"))
+            print("Client Closed")
+            soc.close()
+            sys.exit()
 
-    soc.send(b'--quit--')
+        elif message == 'dir':
+            soc.sendall(message.encode("utf8"))
+            recv_input = soc.recv(5120).decode("utf8")
+            print(recv_input)
+        
+        elif message[:2] == 'cd':
+            soc.sendall(message.encode("utf8"))
+            recv_input = soc.recv(5120).decode("utf8")
+            print(recv_input)
+
+        elif message[:8] == "download":
+            filename = message[9:]
+            soc.sendall(message.encode("utf8"))
+            with open("new_"+filename, 'wb') as file_to_write:
+                data = soc.recv(5120).decode("utf8")
+                if not data:
+                    break
+                file_to_write.write(data.encode())
+                print("Download Complete")
+                file_to_write.close()
+
+        elif message[:6] == "create":
+            soc.sendall(message.encode("utf8"))
+            recv_input = soc.recv(5120).decode("utf8")
+            print(recv_input)
+        
+        elif message[:4] == "read":
+            soc.sendall(message.encode("utf8"))
+            recv_input = soc.recv(5120).decode("utf8")
+            print(recv_input)   
+
+        elif message[:6] == "update":
+            soc.sendall(message.encode("utf8"))
+            recv_input = soc.recv(5120).decode("utf8")
+            print(recv_input)   
+
+            data = input("-> Enter Data in the file: ")
+            soc.sendall(data.encode("utf8"))
+            recv_input1 = soc.recv(5120).decode("utf8")
+            print(recv_input1)   
+
+        else:
+            soc.sendall(message.encode("utf8"))
+            recv_input = soc.recv(5120).decode("utf8")
+            print(recv_input)
 
 if __name__ == "__main__":
     main()
