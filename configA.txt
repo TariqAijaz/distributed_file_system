@@ -1,0 +1,14 @@
+{
+    "HOST": "localhost",
+    "PORT":30000,
+    "connections":{
+        "Server_B":  {
+                    "ip": "localhost",
+                    "port": 30001
+                    },
+        "Server_C": {
+                    "ip": "localhost",
+                    "port": 30002
+                    }
+    }
+} 
