@@ -1,0 +1,27 @@
+{
+    "root": {
+        "children": {
+            "sakina": {
+                "name": "sakina",
+                "type": "directory",
+                "children": {}
+            },
+            "fizza": {
+                "name": "fizza",
+                "type": "directory",
+                "children": {}
+            },
+            "talha": {
+                "name": "talha",
+                "type": "directory",
+                "children": {
+                    "tariq": {
+                        "name": "tariq",
+                        "type": "directory",
+                        "children": {}
+                    }
+                }
+            }
+        }
+    }
+}

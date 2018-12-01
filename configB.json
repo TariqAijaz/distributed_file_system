@@ -2,7 +2,7 @@
     "HOST": "localhost",
     "PORT":30001,
     "connections":{
-        "Server_B":  {
+        "Server_A": {
                     "ip": "localhost",
                     "port": 30000
                     },
@@ -11,4 +11,4 @@
                     "port": 30002
                     }
     }
-}
+} 

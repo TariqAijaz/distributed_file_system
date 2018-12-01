@@ -6,6 +6,8 @@ import pprint
 from functools import reduce
 import sys
 import subprocess
+import uuid 
+
 def path_to_dict(path):
       d = {'name': os.path.basename(path)}
       if os.path.isdir(path):
@@ -27,8 +29,8 @@ root = startpath+'\\root'
 # with open(root+'\\files.json', 'w') as f:
 #     json.dump(root_dict, f, indent=4)
 
-f = open(root+'\\files.json', 'r')
-dictionary = json.load(f)
+# f = open(root+'\\files.json', 'r')
+# dictionary = json.load(f)
 
 # exit()
 # if 'children' in dictionary.keys():
@@ -105,28 +107,39 @@ def make_directory(path, folder_name):
       with open(root+'\\files.json', 'w') as f:
           json.dump(prev_structure, f, indent=4)
 
-def make_file(path, file_name,sock):
+def make_file(path, file_name):
       file_name = { file_name: {
             'name': file_name,
             'type':'file',
-            'map': sock
             }
       }
       path_component = {}
       for p in path:
             path_component = path.split('\\')
-      with open(root+'\\files.json', 'r') as f:
+      with open(root+'\\files'+sys.argv[1]+'.json', 'r') as f:
             prev_structure = json.load(f)
       structure = prev_structure
       for comp in path_component:
             if comp in structure.keys():
                   structure = structure[comp]['children']
       
+      for file_name in structure.keys():
+            if file_name == 'asra.txt':
+                  structure = structure[file_name]['mappings']
+            #       file_name = 'saadia.txt'
+      # print(structure)
+      for server, file_name in structure.items():
+            if 'Server_A' in server:
+                  print('File Exists!')
+      exit()
+      
       if file_name in structure.values():
-            print('File Exists!')
+            msg = 'File Exists!'
+            print(msg)
       else:
             structure.update(file_name)
-            print("File Created")
+            msg = "File Created"
+            print(msg)
 
       for key in prev_structure:
           if key in structure:         
@@ -141,20 +154,62 @@ def open_file(path, filename):
             theproc = subprocess.Popen(['notepad',filename])
             theproc.communicate()
       
-# def change_directory(path, directory_name):
-      # directory = list_directory(path)
-      # if directory_name in directory:
-      #       print('Directory Changed')
-      # else:
-      #       print('Invalid')
+def change_directory(path, directory_name):
+      directory = list_directory(path)
+      if directory_name in directory:
+            print('Directory Changed')
+            new_path = path+'\\'+directory_name
+            return new_path 
+      else:
+            print('Directory not found')
       
 
 path = "root"
+# x = 'blue red green'
+
+# listSplitted = [x for xs in x.split(' ')]
+# for x in listSplitted:
+#     print(x[0])
+
+# command = x.split()[0]
+# print(command)
+# com = []
+# com.append(x.split(' '))
+# print(com[0])
 # open_file(path,'asra.txt')
-print(list_directory(path))
-# make_directory(path,'asra')
+# print(list_directory(path))
 # make_file(path,'asra.txt')
-# change_directory(path,'tariq')
+# lines = line.strip('\n')
+# print(line)
+# print(lines)
+while True:
+      line = input('-> ')
+      messageList = line.split(' ')
+      if messageList[0] == 'exit':
+            if line[4:] == '':
+                  print('higaya')
+      
+
+# f = open('config'+sys.argv[1]+'.json', 'r')
+# dicte = json.load(f)
+# connect = dicte['connections']
+# servers = []
+# for server, conn in connect.items():
+#       if server != 'Server_'+sys.argv[1]:
+#       # servers.append(server)
+#             print(server)
+# def read_file():
+#     startpath = os.getcwd()
+#     root = startpath+'\\root'
+#     with open(root+'\\files.json', 'r') as f:
+#         file = f.read()
+#     return file
+
+# id = uuid.uuid1()
+# unique_name = id.int
+
+# print(unique_name)
+# print(change_directory(path,'asra'))
 # def runcmd(cmd):
 #     x = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
 #     return x.communicate()
