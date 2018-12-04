@@ -18,8 +18,10 @@ from functools import reduce
 
 def intialize_socket(host,port):
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     try:
         soc.connect((host, port))
+
     except:
         print("Connection error")
         sys.exit()
@@ -41,8 +43,6 @@ def main():
             sys.exit()
 
         elif messageList[0] == 'ls':
-            print(new_message)
-
             soc.sendall(new_message.encode("utf8"))
             recv_files_list = soc.recv(5120)
             if recv_files_list == b'Invalid':
@@ -92,10 +92,31 @@ def main():
                     file_name = input('File Name: ')
                     if file_name is not None:
                         with open(root+'\\'+'Server_'+sys.argv[1]+'-Files'+'\\'+file_name+'.txt', 'w+') as f:
-                            f.write(recv_msg)
+                            f.write(recv_msg[4:])
                             f.close()
                     else:
                         print('Invalid')
+
+        elif messageList[0] == 'upload':
+            startpath = os.getcwd()
+            root = startpath+'\\root'
+            if message[7:] == '':
+                print('Invalid')
+            else:
+                try:
+                    with open(root+'\\'+'Server_'+sys.argv[1]+'-Files'+'\\'+messageList[1], 'r') as f:
+                        read_bytes = f.read(10000)
+                    message = new_message+' '+read_bytes
+                    soc.sendall(message.encode("utf8"))
+                    recv_msg = soc.recv(10000).decode("utf8")
+                    if recv_msg == 'Invalid':
+                        print('Invalid')
+                    elif recv_msg == 'File Exists!':
+                        print('File Exists!')
+                    else:
+                        print(recv_msg)
+                except:
+                    print('No File Found')
         else:
             print('Invalid')
         

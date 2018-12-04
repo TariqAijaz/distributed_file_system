@@ -59,7 +59,7 @@ def connect_to_servers(host, port, index):
     
 def start_server():
     host = "127.0.0.1"
-    port = 30000
+    port = 30002
     try:
         Thread(target=read_connection_from_config_file).start()
         soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -96,6 +96,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                     print("Client Connection " + ip + ":" + port + " closed")
                     is_active = False
                     break
+                
                 elif "ls" in client_input[0]:
                     if client_input[1] != "":                    
                         files_list = list_directory(client_input[1])
@@ -173,6 +174,11 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                     root = startpath+'\\root'
                     path = client_input[1]
                     file_name = client_input[2]
+                    len1 = len(client_input[0])
+                    len2 = len(file_name)
+                    len3 = len(path)
+                    total_len = len1 + len2 + len3 + 3
+
                     with open(root+'\\files'+sys.argv[1]+'.json', 'r') as f:
                         prev_structure = json.load(f)
                     structure = prev_structure
@@ -195,7 +201,9 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                     structure.update(server_name)
                     msg = "updated rep"
                     print(msg)
-                    open(startpath+'\\'+'Server_'+sys.argv[1]+'\\'+str(unique_name)+'.txt', 'w+')
+                    with open(startpath+'\\'+'Server_'+sys.argv[1]+'\\'+str(unique_name)+'.txt', 'w+') as f:
+                        f.write(data_input[total_len:])
+
                     for key in prev_structure:
                         if key in structure:         
                             prev_structure[key].update(structure[key])
@@ -249,8 +257,8 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                         json.dump(prev_structure, f, indent=4)
 
                 elif "download" in client_input[0]:
+                    file = True
                     if client_input[1] != "" and client_input[2] != "":
-                        print(client_input)
                         file_name = client_input[1] 
                         path = client_input[2] 
                         startpath = os.getcwd()
@@ -268,24 +276,93 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                             if file_name in file_names:
                                 print(file_name)
                                 structure = structure[file_name]['mappings']
-                                print(structure)
-                            # else:
-                            #     msg = 'No File Found'
-                            #     print(msg)
-                                # connection.sendall(msg.encode("utf8"))
-                                # break
-                        for server, file in structure.items():
-                            print(file['name'])
-                            if 'Server_'+sys.argv[1] == server:
-                                with open(startpath+'\\'+'Server_'+sys.argv[1]+'\\'+file['name']+'.txt', 'r') as f:
-                                    file_read = f.read(4096)
-                                connection.sendall(file_read.encode("utf8"))  
-                                print('file send')
+                                for server, file in structure.items():
+                                    print(file)
+                                    if file['name'] is not None:
+                                        if 'Server_'+sys.argv[1] == server:
+                                            with open(startpath+'\\'+'Server_'+sys.argv[1]+'\\'+file['name']+'.txt', 'r') as f:
+                                                file_read = f.read(4096)
+                                            send_msg = 'file'+file_read
+                                            connection.sendall(send_msg.encode("utf8"))  
+                                            print('file send')
+                                            break
+                            else:
+                                file = False
+                        if file == False:
+                            msg = 'No File Found'
+                            connection.sendall(msg.encode("utf8"))
                     else:
                         message = 'No File Found'
-                        print(msg)
                         connection.sendall(message.encode("utf8"))
                 
+                elif "upload" in client_input[0]:
+                    upload = False
+                    file_name = client_input[1] 
+                    path = client_input[2]
+                    startpath = os.getcwd()
+                    root = startpath+'\\root'
+                    if client_input[1] != "" and client_input[2] != "":
+                        len1 = len(client_input[0])
+                        len2 = len(file_name)
+                        len3 = len(path)
+                        total_len = len1 + len2 + len3 + 3
+                        id = uuid.uuid1()
+                        unique_name = id.int 
+                        file_structure = {
+                            file_name: {
+                                'name': file_name,
+                                'type':'file',
+                                'mappings': {
+                                    'Server_'+sys.argv[1]: {
+                                        'name': str(unique_name)
+                                    }
+                                }
+                            }
+                        }
+                        for p in path:
+                            path_component = path.split('\\')
+                        with open(root+'\\files'+sys.argv[1]+'.json', 'r') as f:
+                            prev_structure = json.load(f)
+                        structure = prev_structure
+                        for comp in path_component:
+                            if comp in structure.keys():
+                                structure = structure[comp]['children']
+                        if file_name in structure.keys():
+                            msg = 'File Exists!'
+                            connection.sendall(msg.encode("utf8"))
+                        else:
+                            structure.update(file_structure)
+                            for key in prev_structure:
+                                if key in structure:         
+                                    prev_structure[key].update(structure[key])
+                            with open(root+'\\files'+sys.argv[1]+'.json', 'w') as f:
+                                json.dump(prev_structure, f, indent=4)
+                            with open(startpath+'\\'+'Server_'+sys.argv[1]+'\\'+str(unique_name)+'.txt', 'w+') as f:
+                                f.write(data_input[total_len:])
+                            message = 'Uploaded'
+                            upload = True
+                            connection.sendall(message.encode("utf8"))
+
+                        if upload == True:
+                            message = 'Update_file'
+                            startpath = os.getcwd()
+                            root = startpath+'\\root'
+                            for socks in server_socket:
+                                if socks is not None:
+                                    with open(root+'\\files'+sys.argv[1]+'.json', 'r') as f:
+                                        bytesToSend = f.read(10000)
+                                    command = message+" "+bytesToSend
+                                    socks.sendall(command.encode("utf8"))
+                            msg = 'Replicate_file'
+                            for socks in server_socket:
+                                if socks is not None:
+                                    command = msg+" "+path+" "+file_name+" "+data_input[total_len:]
+                                    socks.sendall(command.encode("utf8"))
+
+                    else:
+                        message = 'Invalid'
+                        connection.sendall(message.encode("utf8"))
+                        
                 else:
                     message = "Invalid Request"
                     connection.sendall(message.encode("utf8"))
