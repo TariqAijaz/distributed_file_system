@@ -1,5 +1,6 @@
 '''
 Name : Muhammad Tariq Aijaz
+ERP: 09827
 Subject: Distributed Operating System
 Instructor: Sir Shabbir Mukhi 
 
@@ -17,11 +18,14 @@ import uuid
 import time
 from threading import Thread, ThreadError
 
+# list of sockets needs to be connected with each other
 server_socket = [None, None]
 
+# main function
 def main():
     start_server()
 
+# reading ip and port from config file and sending connection to other server constantly unless it get connected.  
 def read_connection_from_config_file():
     global server_socket
     f = open('config'+sys.argv[1]+'.json', 'r')
@@ -40,6 +44,7 @@ def read_connection_from_config_file():
                         server_socket[index] = connect_to_servers(connection['ip'],connection['port'], index)
                     index = index + 1
 
+# server_to_server thread functin
 def listen_on_socket(sockets, index):
     try:
         if sockets is not None:
@@ -48,6 +53,8 @@ def listen_on_socket(sockets, index):
         print('server has disconnected')
         server_socket[index] = None
 
+# connect_to_servers sends connection to other server and for every connection creates a new thread to check if
+# server is disconnected or not. 
 def connect_to_servers(host, port, index):
     try:
         sockets = socket.create_connection((host,port))
@@ -56,10 +63,14 @@ def connect_to_servers(host, port, index):
         return sockets
     except:
         print("Connection error")
-    
+
+# start_server is the main function that starts the server, binds it and start a threads so it doesn't get blocked.    
 def start_server():
     host = "127.0.0.1"
-    port = 30002
+    f = open('config'+sys.argv[1]+'.json', 'r')
+    dicte = json.load(f)
+    PORT = dicte['PORT']
+    port = PORT
     try:
         Thread(target=read_connection_from_config_file).start()
         soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -81,7 +92,7 @@ def start_server():
         print("Socket Error: " + str(e))
         # sys.exit()
 
-
+# client_thread function that receives input and execute all of the client commands 
 def client_thread(connection, ip, port, max_buffer_size = 10000):
     is_active = True
     path = "root"
@@ -90,6 +101,8 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
             data_input = receive_input(connection, max_buffer_size)
             if data_input is not None:
                 client_input = data_input.split(' ')
+
+                # client gets exited from the server.
                 if "exit" in client_input[0]:
                     print("Client is requesting to disconnect")
                     connection.close()
@@ -97,6 +110,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                     is_active = False
                     break
                 
+                # list down all the files and send it to client.
                 elif "ls" in client_input[0]:
                     if client_input[1] != "":                    
                         files_list = list_directory(client_input[1])
@@ -106,6 +120,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                         message = 'Invalid'
                         connection.sendall(message.encode("utf8"))
                 
+                # makes new directory, updates directory structure and send the response to the client.
                 elif "mkdir" in client_input[0]:
                     if client_input[1] != "" and client_input[2] != "":
                         message = make_directory(client_input[1], client_input[2])
@@ -124,6 +139,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                                 command = message+" "+bytesToSend
                                 socks.sendall(command.encode("utf8"))
 
+                # makes new file, updates directory structure and send the response to the client.
                 elif "mkfile" in client_input[0]:
                     if client_input[1] != "" and client_input[2] != "":
                         path = client_input[2] 
@@ -149,6 +165,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                                 command = msg+" "+path+" "+file_name
                                 socks.sendall(command.encode("utf8"))
 
+                # change directory.
                 elif "cd" in client_input[0]:
                     if client_input[1] != "" and client_input[2] != "":
                         message = change_directory(client_input[1], client_input[2])
@@ -157,18 +174,21 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                         message = 'Invalid'
                         connection.sendall(message.encode("utf8"))
                 
+                # updates the directory structure on all the server. 
                 elif "Update_dir" in client_input[0]:
                     startpath = os.getcwd()
                     root = startpath+'\\root'
                     with open(root+'\\files'+sys.argv[1]+'.json', 'w') as f:
                         f.write(data_input[11:])
                 
+                # updates the directory structure on all the server. 
                 elif "Update_file" in client_input[0]:
                     startpath = os.getcwd()
                     root = startpath+'\\root'
                     with open(root+'\\files'+sys.argv[1]+'.json', 'w') as f:
                         f.write(data_input[12:])
                 
+                # sends replication command to all the server to replicate the file.
                 elif "Replicate_file" in client_input[0]:
                     startpath = os.getcwd()
                     root = startpath+'\\root'
@@ -217,7 +237,9 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                         if socks is not None:
                             send_command = message+" "+path+" "+file_name+" "+'Server_'+sys.argv[1]+" "+str(unique_name)
                             socks.sendall(send_command.encode('utf8'))
-                
+
+                # add_entry commands makes sure that the replication is done on all the server and directory
+                # is updated properly.                
                 elif "add_entry" in client_input[0]:
                     print(client_input)
                     startpath = os.getcwd()
@@ -256,6 +278,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                     with open(root+'\\files'+sys.argv[1]+'.json', 'w') as f:
                         json.dump(prev_structure, f, indent=4)
 
+                # downloads the file from server and send it to client.
                 elif "download" in client_input[0]:
                     file = True
                     if client_input[1] != "" and client_input[2] != "":
@@ -295,6 +318,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                         message = 'No File Found'
                         connection.sendall(message.encode("utf8"))
                 
+                # uploads the file on server.
                 elif "upload" in client_input[0]:
                     upload = False
                     file_name = client_input[1] 
@@ -362,7 +386,8 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
                     else:
                         message = 'Invalid'
                         connection.sendall(message.encode("utf8"))
-                        
+
+                # check invalid command
                 else:
                     message = "Invalid Request"
                     connection.sendall(message.encode("utf8"))
@@ -374,6 +399,7 @@ def client_thread(connection, ip, port, max_buffer_size = 10000):
             connection.close()
             return
 
+# receive_input receives input from the client 
 def receive_input(connection, max_buffer_size):
     try:
         client_input = connection.recv(max_buffer_size)
@@ -385,6 +411,7 @@ def receive_input(connection, max_buffer_size):
     except Exception as e:
         print('Receive Input Error: {}'.format(e))
 
+# list_directory list down all the files of the current directory 
 def list_directory(path):
     startpath = os.getcwd()
     root = startpath+'\\root'
@@ -402,6 +429,7 @@ def list_directory(path):
         values.append(value)
     return values
 
+# make_directory makes a new directory according to the updated path and update the directory structure.
 def make_directory(folder_name, path):
     startpath = os.getcwd()
     root = startpath+'\\root'
@@ -432,6 +460,7 @@ def make_directory(folder_name, path):
             json.dump(prev_structure, f, indent=4)
     return message
 
+# make_file makes a new file according to the updated path and update the directory structure
 def make_file(file_name, path, server):
     id = uuid.uuid1()
     unique_name = id.int
@@ -475,6 +504,7 @@ def make_file(file_name, path, server):
     message.append(name)
     return message
 
+# change_directory changes the directory and updates the path.
 def change_directory(directory_name, path):
     directory = list_directory(path)
     if directory_name in directory:
@@ -484,5 +514,6 @@ def change_directory(directory_name, path):
         message = 'Directory not found'
         return message
 
+# main
 if __name__ == "__main__":
     main()
