@@ -18,7 +18,7 @@ import uuid
 import time
 from threading import Thread, ThreadError
 
-# list of sockets needs to be connected with each other
+# global list of sockets needs to be connected with each other
 server_socket = [None, None]
 
 # main function
@@ -504,12 +504,15 @@ def make_file(file_name, path, server):
     message.append(name)
     return message
 
-# change_directory changes the directory and updates the path.
+# change_directory changes the directory and updates the current path.
 def change_directory(directory_name, path):
     directory = list_directory(path)
     if directory_name in directory:
         new_path = path+'\\'+directory_name
-        return new_path 
+        return new_path
+    elif directory_name == '..':
+        new_path = path.rsplit('\\',1)[0]
+        return new_path
     else:
         message = 'Directory not found'
         return message
